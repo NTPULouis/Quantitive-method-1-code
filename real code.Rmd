@@ -6,14 +6,158 @@ read data
 ```{r}
 dataset <- read.csv("C:/Users/daviddu/Desktop/data_for_class.csv",header=TRUE)
 ```
-
 put data in structure
 ```{r}
 str(dataset)
 
 dat <- dataset
 ```
+set name
+```{r}
+miles <- dat$MILES
+income <- dat$INCOME
+age <- dat$AGE
+kids <- dat$KIDS
+```
+lm : linear model (in R package)；summary 呈現大部分迴歸結果
+```{r}
+lse <- lm(miles~income+age+kids)
+summary(lse)
+```
+手動打出所有結果: first, 列出依變項值
+as. : ??(叫出某功能?)
+```{r}
+y <- as.matrix(miles)
+y
+dim(y)
+```
+cbind : 把解釋變數"綁"在一起
+```{r}
+X <- cbind(1,income,age,kids)
+X
+dim(X)
+```
+crossproduct : 使前乘項transpose再相乘；solve : 反矩陣
+b=(X'X)-1X'y
+```{r}
+b <- crossprod(solve(crossprod(X,X)),crossprod(X,y))
+b
+dim(b)
+```
+%*% : R 的矩陣乘號
+* : R 的一般乘號
+```{r}
+e <- y-X%*%b
+e
+summary(e)
+```
+number of row of X；i:元素全都是1的matrix
+x [,1] : 叫出"所有""intercept"",此為200*1
+x [100,2]叫出"第100筆的""income"
+m0 : residual maker matrix
+```{r}
+n <- nrow(X)
+i <- as.matrix(X[,1])
+m0 <- diag(n)-i%*%solve(crossprod(i,i))%*%t(i)
+```
+計算R Squared；命名完後再叫出指令表示要他呈現
+```{r}
+tss <- t(y)%*%m0%*%y
+rss <- crossprod(e,e)
+ess <- tss-rss
+```
+```{r}
+R2  <- ess/tss
+R2
+```
+number of column of X (有幾個parameter) ；
+n-k :估計參數so少掉k個自由度
+```{r}
+k <- ncol(X)
+nmk <- n-k
+nmk
+```
 
+```{r}
+adjR2 <- (1-k)/nmk+(n-1)/nmk*R2
+adjR2
+```
+numeric : 提取數值指令 (因為rSS是 1*1矩陣)
+```{r}
+s2 <- as.numeric(rss/nmk)
+s2
+s <- s2^0.5
+s
+```
+造出var-co-var matrix
+```{r}
+VCOV <- s2*solve(crossprod(X,X))
+VCOV
+```
+diag : 截出對角線值；get variance & 標準誤
+```{r}
+var <- diag(VCOV)
+var
+se <- var^0.5
+se
+```
+計算 crtical value (t值)和p-value
+p value 式乘以2 : 雙尾
+```{r}
+trat <- b/se
+trat
+pvt <- 2*pt(-abs(trat),df=nmk)
+pvt
+```
+整理結果。自行製表
+```{r}
+results <- cbind(b,se,trat,pvt)
+colnames(results) <- c("Estimate","Std. Error","t value","Pr(>|t|)")
+rownames(results) <- c("intercept","income","age","kids")
+round(results,digits=4)
+```
+進行F檢定
+-1 : 因為不管截距項；ncol(X)，
+number of column of X，可以改成k-1 (上面定義過)
+```{r}
+q <- ncol(X)-1
+q
+```
+0:0 : 使截距=0；
+建構R matrix : (目標RB-r)
+有 BUG，待解
+```{r}
+null <- matrix(0:0,q)
+ikm1 <- diag(q)
+R <- cbind(null,ikm1)
+R
+```
+有 BUG，待解
+```{r}
+r <- matrix(0:0,q)
+r
+```
+下方名 : RB-r的名稱標號
+完成F檢定
+```{r}
+Rbetamr <- R%*%b-r
+Rbetamr
+F <- t(Rbetamr)%*%solve(R%*% VCOV %*%t(R))%*%Rbetamr/q
+F
+```
+看f的distribution
+```{r}
+pvF <- 1-pf(F,df1=q,df2=nmk)
+pvF
+```
+用R內建函數跑出剛才的結果
+```{r}
+vcov(lse)
+coefficients(lse)
+residuals(lse)
+fitted.values(lse)
+y-e
+```
 
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
 
